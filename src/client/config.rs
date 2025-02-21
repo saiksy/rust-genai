@@ -1,7 +1,7 @@
 use crate::adapter::AdapterDispatcher;
 use crate::chat::ChatOptions;
 use crate::client::ServiceTarget;
-use crate::resolver::{AuthResolver, ModelMapper, ServiceTargetResolver};
+use crate::resolver::{AuthResolver, ModelMapper, Payload, PayloadResolver, ServiceTargetResolver};
 use crate::{Error, ModelIden, Result};
 
 /// The Client configuration used in the configuration builder stage.
@@ -11,6 +11,7 @@ pub struct ClientConfig {
 	pub(super) service_target_resolver: Option<ServiceTargetResolver>,
 	pub(super) model_mapper: Option<ModelMapper>,
 	pub(super) chat_options: Option<ChatOptions>,
+	pub(super) payload_resolver: Option<PayloadResolver>,
 }
 
 /// Chainable setters related to the ClientConfig.
@@ -45,6 +46,12 @@ impl ClientConfig {
 		self.chat_options = Some(options);
 		self
 	}
+
+	/// Set the PayloadResolver for this client config.
+	pub fn with_payload_resolver(mut self, payload_resolver: PayloadResolver) -> Self {
+		self.payload_resolver = Some(payload_resolver);
+		self
+	}
 }
 
 /// Getters for the fields of ClientConfig (as references).
@@ -66,6 +73,11 @@ impl ClientConfig {
 	/// Get a reference to the ChatOptions, if they exist.
 	pub fn chat_options(&self) -> Option<&ChatOptions> {
 		self.chat_options.as_ref()
+	}
+
+	/// Get a reference to the PayloadResolver, if it exists.
+	pub fn payload_resolver(&self) -> Option<&PayloadResolver> {
+		self.payload_resolver.as_ref()
 	}
 }
 
@@ -118,5 +130,17 @@ impl ClientConfig {
 		};
 
 		Ok(service_target)
+	}
+
+	/// Get a reference to the PayloadResolver, if it exists.
+	pub fn resolver_payload(&self, model: ModelIden, payload: Payload) -> Result<Payload> {
+		if let Some(payload_resolver) = self.payload_resolver() {
+			payload_resolver.resolve(payload).map_err(|resolver_error| Error::Resolver {
+				model_iden: model,
+				resolver_error,
+			})
+		} else {
+			Ok(payload)
+		}
 	}
 }

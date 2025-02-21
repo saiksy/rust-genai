@@ -1,5 +1,8 @@
+use serde_json::Value;
+
 use crate::adapter::{AdapterDispatcher, AdapterKind, ServiceType, WebRequestData};
 use crate::chat::{ChatOptions, ChatOptionsSet, ChatRequest, ChatResponse, ChatStreamResponse};
+use crate::resolver::Payload;
 use crate::{Client, Error, ModelIden, Result, ServiceTarget};
 
 /// Public AI Functions
@@ -41,6 +44,10 @@ impl Client {
 		self.config().resolve_service_target(model)
 	}
 
+	pub fn resolve_payload(&self, model: ModelIden, payload: Payload) -> Result<Payload> {
+		self.config().resolver_payload(model, payload)
+	}
+
 	/// Executes a chat.
 	pub async fn exec_chat(
 		&self,
@@ -60,14 +67,16 @@ impl Client {
 		let WebRequestData { headers, payload, url } =
 			AdapterDispatcher::to_web_request_data(target, ServiceType::Chat, chat_req, options_set.clone())?;
 
-		let web_res =
-			self.web_client()
-				.do_post(&url, &headers, payload)
-				.await
-				.map_err(|webc_error| Error::WebModelCall {
-					model_iden: model.clone(),
-					webc_error,
-				})?;
+		let payload = self.resolve_payload(model.clone(), Payload::new(payload))?;
+
+		let web_res = self
+			.web_client()
+			.do_post(&url, &headers, payload.payload)
+			.await
+			.map_err(|webc_error| Error::WebModelCall {
+				model_iden: model.clone(),
+				webc_error,
+			})?;
 
 		let chat_res = AdapterDispatcher::to_chat_response(model, web_res, options_set)?;
 
