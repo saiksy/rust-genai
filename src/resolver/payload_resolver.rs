@@ -5,13 +5,20 @@ use crate::resolver::Result;
 
 #[derive(Debug, Clone)]
 pub enum PayloadResolver {
-	ResolvePayloadFn(Arc<Box<dyn PayloadResolveFn>>),
+	ResolverFn(Arc<Box<dyn PayloadResolveFn>>),
+}
+
+impl PayloadResolver {
+	/// Create a new `ServiceTargetResolver` from a resolver function.
+	pub fn from_resolver_fn(resolver_fn: impl IntoPayloadResolverFn) -> Self {
+		PayloadResolver::ResolverFn(resolver_fn.into_payload_resolver_fn())
+	}
 }
 
 impl PayloadResolver {
 	pub fn resolve(&self, payload: Payload) -> Result<Payload> {
 		match self {
-			PayloadResolver::ResolvePayloadFn(resolve_fn) => resolve_fn.clone().exec_fn(payload),
+			PayloadResolver::ResolverFn(resolve_fn) => resolve_fn.clone().exec_fn(payload),
 		}
 	}
 }
