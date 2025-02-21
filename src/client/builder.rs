@@ -1,6 +1,6 @@
 use crate::chat::ChatOptions;
 use crate::resolver::{
-	AuthResolver, IntoAuthResolverFn, IntoModelMapperFn, IntoServiceTargetResolverFn, ModelMapper,
+	AuthResolver, IntoAuthResolverFn, IntoModelMapperFn, IntoServiceTargetResolverFn, ModelMapper, PayloadResolver,
 	ServiceTargetResolver,
 };
 use crate::webc::WebClient;
@@ -84,6 +84,12 @@ impl ClientBuilder {
 		let client_config = self.config.get_or_insert_with(ClientConfig::default);
 		let model_mapper = ModelMapper::from_mapper_fn(model_mapper_fn);
 		client_config.model_mapper = Some(model_mapper);
+		self
+	}
+
+	pub fn with_payload_resolver(mut self, payload_resolver: PayloadResolver) -> Self {
+		let client_config = self.config.get_or_insert_with(ClientConfig::default);
+		client_config.payload_resolver = Some(payload_resolver);
 		self
 	}
 }
