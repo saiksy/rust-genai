@@ -101,13 +101,15 @@ impl Client {
 		let WebRequestData { url, headers, payload } =
 			AdapterDispatcher::to_web_request_data(target, ServiceType::ChatStream, chat_req, options_set.clone())?;
 
-		let reqwest_builder = self
-			.web_client()
-			.new_req_builder(&url, &headers, payload)
-			.map_err(|webc_error| Error::WebModelCall {
-				model_iden: model.clone(),
-				webc_error,
-			})?;
+		let payload = self.resolve_payload(model.clone(), Payload::new(payload))?;
+
+		let reqwest_builder =
+			self.web_client()
+				.new_req_builder(&url, &headers, payload.payload)
+				.map_err(|webc_error| Error::WebModelCall {
+					model_iden: model.clone(),
+					webc_error,
+				})?;
 
 		let res = AdapterDispatcher::to_chat_stream(model, reqwest_builder, options_set)?;
 
